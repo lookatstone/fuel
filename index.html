@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PKW Vergleichsrechner – Verbrenner vs Elektro</title>
+  <style>
+    :root {
+      --bg: #f3f5fb;
+      --card: #ffffff;
+      --text: #121826;
+      --muted: #5b6475;
+      --border: #d8deea;
+      --ev: #0f766e;
+      --ice: #1d4ed8;
+      --good: #166534;
+      --bad: #b91c1c;
+      --warn: #92400e;
+      --shadow: 0 10px 22px rgba(18, 24, 38, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at top left, #eef3ff 0%, var(--bg) 40%);
+      line-height: 1.45;
+    }
+
+    .container { max-width: 1180px; margin: 0 auto; padding: 1rem; }
+
+    h1 { margin: .2rem 0 .4rem; font-size: clamp(1.4rem, 1.1rem + 1.5vw, 2.1rem); }
+    h2 { margin: 0 0 .8rem; font-size: 1.15rem; }
+    h3 { margin: 0 0 .7rem; font-size: 1rem; }
+
+    .muted { color: var(--muted); }
+
+    .summary {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1rem;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: .75rem;
+      margin-top: .75rem;
+    }
+
+    .metric {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: .75rem;
+      background: #fafcff;
+    }
+
+    .metric .label { font-size: .82rem; color: var(--muted); }
+    .metric .value { font-size: 1.22rem; font-weight: 700; }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      border-radius: 999px;
+      padding: .25rem .7rem;
+      font-size: .87rem;
+      font-weight: 700;
+      margin-top: .5rem;
+      border: 1px solid transparent;
+    }
+
+    .status-good { background: #ecfdf3; color: var(--good); border-color: #86efac; }
+    .status-bad { background: #fff1f2; color: var(--bad); border-color: #fda4af; }
+    .status-even { background: #eef2ff; color: #3730a3; border-color: #c7d2fe; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    @media (min-width: 940px) {
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1rem;
+      box-shadow: var(--shadow);
+    }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .6rem;
+      margin-bottom: .7rem;
+    }
+
+    .chip {
+      font-size: .75rem;
+      padding: .25rem .55rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: #f9fbff;
+    }
+
+    .field { margin-bottom: .72rem; }
+    label { display: block; margin-bottom: .25rem; font-size: .89rem; color: var(--muted); }
+
+    .input-wrap {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: .45rem;
+      align-items: center;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .56rem .62rem;
+      font-size: .98rem;
+      outline: none;
+    }
+
+    input[type="number"]:focus,
+    input[type="range"]:focus {
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, .15);
+      border-color: #93c5fd;
+    }
+
+    input[type="range"] { width: 100%; }
+
+    .hint { font-size: .8rem; color: var(--muted); margin-top: .2rem; }
+
+    .info {
+      cursor: help;
+      display: inline-flex;
+      width: 1rem;
+      height: 1rem;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      border: 1px solid #cbd5e1;
+      font-size: .74rem;
+      color: #334155;
+      margin-left: .3rem;
+    }
+
+    .actions {
+      display: flex;
+      gap: .6rem;
+      flex-wrap: wrap;
+      margin-top: .8rem;
+    }
+
+    button {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      padding: .55rem .75rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button.primary { background: #1d4ed8; color: white; border-color: #1d4ed8; }
+
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: .75rem;
+      margin-top: .9rem;
+    }
+
+    .warn-box {
+      margin-top: .75rem;
+      border: 1px solid #f59e0b;
+      background: #fffbeb;
+      color: var(--warn);
+      border-radius: 10px;
+      padding: .6rem .7rem;
+      font-size: .87rem;
+    }
+
+    .charts { display: grid; gap: 1rem; margin-top: 1rem; }
+
+    .chart-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: .9rem;
+      box-shadow: var(--shadow);
+    }
+
+    canvas { width: 100% !important; max-height: 320px; }
+
+    footer {
+      margin: 1.2rem 0 .4rem;
+      color: var(--muted);
+      font-size: .84rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="summary">
+      <h1>Verbrenner vs. Elektro Vergleichsrechner (PKW)</h1>
+      <p class="muted">Teste live, unter welchen Konditionen das Elektrofahrzeug wirtschaftlicher wird.</p>
+      <div id="statusBadge" class="status-badge status-even">⚖️ Gleichstand</div>
+      <p id="statusText" class="muted" style="margin:.45rem 0 0;">Bitte Werte anpassen.</p>
+
+      <div class="summary-grid">
+        <div class="metric">
+          <div class="label">ICE Kosten / 100 km</div>
+          <div id="sumIce100" class="value">–</div>
+        </div>
+        <div class="metric">
+          <div class="label">EV Kosten / 100 km</div>
+          <div id="sumEv100" class="value">–</div>
+        </div>
+        <div class="metric">
+          <div class="label">Differenz / 100 km (EV - ICE)</div>
+          <div id="sumDiff100" class="value">–</div>
+        </div>
+        <div class="metric">
+          <div class="label">Break-even-Strompreis</div>
+          <div id="sumMaxPowerPrice" class="value">–</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <article class="card">
+        <div class="title-row">
+          <h2>Verbrenner (ICE)</h2>
+          <span class="chip">Vergleichsbasis</span>
+        </div>
+
+        <div class="field">
+          <label for="fuelPrice">Kraftstoffpreis (€/Liter)</label>
+          <div class="input-wrap">
+            <input id="fuelPrice" type="number" min="0" step="0.01" value="1.85" />
+            <strong id="fuelPriceDisplay">1.85</strong>
+          </div>
+          <input id="fuelPriceRange" type="range" min="0.9" max="3" step="0.01" value="1.85" />
+        </div>
+
+        <div class="field">
+          <label for="iceConsumption">Verbrauch ICE (Liter / 100 km)</label>
+          <div class="input-wrap">
+            <input id="iceConsumption" type="number" min="0" step="0.1" value="6.5" />
+            <strong id="iceConsumptionDisplay">6.5</strong>
+          </div>
+          <input id="iceConsumptionRange" type="range" min="3" max="15" step="0.1" value="6.5" />
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="title-row">
+          <h2>Elektro (EV)</h2>
+          <span class="chip">Spielmodus</span>
+        </div>
+
+        <div class="field">
+          <label for="powerPrice">Strompreis (€/kWh)</label>
+          <div class="input-wrap">
+            <input id="powerPrice" type="number" min="0" step="0.01" value="0.35" />
+            <strong id="powerPriceDisplay">0.35</strong>
+          </div>
+          <input id="powerPriceRange" type="range" min="0.1" max="0.8" step="0.01" value="0.35" />
+        </div>
+
+        <div class="field">
+          <label for="evConsumption">Verbrauch EV (kWh / 100 km)</label>
+          <div class="input-wrap">
+            <input id="evConsumption" type="number" min="0" step="0.1" value="17" />
+            <strong id="evConsumptionDisplay">17.0</strong>
+          </div>
+          <input id="evConsumptionRange" type="range" min="10" max="35" step="0.1" value="17" />
+        </div>
+      </article>
+    </section>
+
+    <section class="card" style="margin-top:1rem;">
+      <h2>Strecke, jährliche Nutzung & optionale Zusatzkosten</h2>
+
+      <div class="grid-2">
+        <div>
+          <div class="field">
+            <label for="distanceKm">Einmalige Strecke (km)</label>
+            <input id="distanceKm" type="number" min="0" step="100" value="500" />
+            <div class="hint">Für freie Streckenvergleiche.</div>
+          </div>
+          <div class="field">
+            <label for="annualKm">Jahresfahrleistung (km/Jahr)</label>
+            <input id="annualKm" type="number" min="0" step="500" value="15000" />
+            <div class="hint">Für Hochrechnung auf Jahr und Break-even-Jahre.</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="field">
+            <label for="purchaseDiff">
+              Anschaffungspreis-Differenz EV - ICE (€)
+              <span class="info" title="Positive Werte: EV ist beim Kauf teurer. Negative Werte: EV ist günstiger.">i</span>
+            </label>
+            <input id="purchaseDiff" type="number" step="100" value="0" />
+          </div>
+
+          <div class="field">
+            <label for="annualRunningDiff">
+              Laufende Kosten-Differenz pro Jahr EV - ICE (€)
+              <span class="info" title="Wartung/Steuer/Service pro Jahr. Negative Werte bedeuten: EV hat geringere laufende Kosten.">i</span>
+            </label>
+            <input id="annualRunningDiff" type="number" step="50" value="-200" />
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="loadExample" class="primary">Beispielwerte laden</button>
+        <button id="resetAll">Reset</button>
+      </div>
+
+      <div id="calcResults" class="calc-grid"></div>
+      <div id="warnings"></div>
+    </section>
+
+    <section class="charts">
+      <article class="chart-card">
+        <h3>Diagramm A: Kosten pro 100 km vs Strompreis (€/kWh)</h3>
+        <canvas id="chartPower"></canvas>
+      </article>
+      <article class="chart-card">
+        <h3>Diagramm B: Kosten pro 100 km vs Spritpreis (€/Liter)</h3>
+        <canvas id="chartFuel"></canvas>
+      </article>
+    </section>
+
+    <footer>
+      GitHub Pages: Repository → <strong>Settings</strong> → <strong>Pages</strong> → Branch wählen (z.B. <code>main</code>) → Root → Save.
+    </footer>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    const DEFAULTS = {
+      fuelPrice: 1.85,
+      iceConsumption: 6.5,
+      powerPrice: 0.35,
+      evConsumption: 17,
+      distanceKm: 500,
+      annualKm: 15000,
+      purchaseDiff: 0,
+      annualRunningDiff: -200,
+    };
+
+    const el = {
+      fuelPrice: document.getElementById('fuelPrice'),
+      fuelPriceRange: document.getElementById('fuelPriceRange'),
+      fuelPriceDisplay: document.getElementById('fuelPriceDisplay'),
+      iceConsumption: document.getElementById('iceConsumption'),
+      iceConsumptionRange: document.getElementById('iceConsumptionRange'),
+      iceConsumptionDisplay: document.getElementById('iceConsumptionDisplay'),
+      powerPrice: document.getElementById('powerPrice'),
+      powerPriceRange: document.getElementById('powerPriceRange'),
+      powerPriceDisplay: document.getElementById('powerPriceDisplay'),
+      evConsumption: document.getElementById('evConsumption'),
+      evConsumptionRange: document.getElementById('evConsumptionRange'),
+      evConsumptionDisplay: document.getElementById('evConsumptionDisplay'),
+      distanceKm: document.getElementById('distanceKm'),
+      annualKm: document.getElementById('annualKm'),
+      purchaseDiff: document.getElementById('purchaseDiff'),
+      annualRunningDiff: document.getElementById('annualRunningDiff'),
+      calcResults: document.getElementById('calcResults'),
+      warnings: document.getElementById('warnings'),
+      statusBadge: document.getElementById('statusBadge'),
+      statusText: document.getElementById('statusText'),
+      sumIce100: document.getElementById('sumIce100'),
+      sumEv100: document.getElementById('sumEv100'),
+      sumDiff100: document.getElementById('sumDiff100'),
+      sumMaxPowerPrice: document.getElementById('sumMaxPowerPrice'),
+      loadExample: document.getElementById('loadExample'),
+      resetAll: document.getElementById('resetAll'),
+    };
+
+    const euro = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const num2 = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const safeNumber = (v, min = 0) => {
+      const n = Number.parseFloat(v);
+      if (!Number.isFinite(n)) return min;
+      return Math.max(min, n);
+    };
+
+    function getInputs() {
+      return {
+        fuelPrice: safeNumber(el.fuelPrice.value),
+        iceConsumption: safeNumber(el.iceConsumption.value),
+        powerPrice: safeNumber(el.powerPrice.value),
+        evConsumption: safeNumber(el.evConsumption.value),
+        distanceKm: safeNumber(el.distanceKm.value),
+        annualKm: safeNumber(el.annualKm.value),
+        purchaseDiff: Number.parseFloat(el.purchaseDiff.value) || 0,
+        annualRunningDiff: Number.parseFloat(el.annualRunningDiff.value) || 0,
+      };
+    }
+
+    function syncValue(input, range, display) {
+      input.addEventListener('input', () => {
+        input.value = safeNumber(input.value).toString();
+        range.value = input.value;
+        display.textContent = Number.parseFloat(input.value).toFixed(2);
+        update();
+      });
+
+      range.addEventListener('input', () => {
+        input.value = range.value;
+        display.textContent = Number.parseFloat(range.value).toFixed(2);
+        update();
+      });
+    }
+
+    function calc(data) {
+      const ice100 = data.fuelPrice * data.iceConsumption;
+      const ev100 = data.powerPrice * data.evConsumption;
+      const diff100 = ev100 - ice100;
+      const perKmSavings = (ice100 - ev100) / 100;
+
+      const iceYear = ice100 * data.annualKm / 100;
+      const evYear = ev100 * data.annualKm / 100;
+      const diffYearEnergy = evYear - iceYear;
+      const totalYearDiff = diffYearEnergy + data.annualRunningDiff;
+
+      const iceDistance = ice100 * data.distanceKm / 100;
+      const evDistance = ev100 * data.distanceKm / 100;
+      const diffDistance = evDistance - iceDistance;
+
+      const maxPowerPrice = data.evConsumption > 0 ? ice100 / data.evConsumption : null;
+      const fuelThreshold = data.iceConsumption > 0 ? ev100 / data.iceConsumption : null;
+
+      let breakEvenKm = null;
+      const annualVariableSavings = ((ice100 - ev100) * data.annualKm / 100) - data.annualRunningDiff;
+      if (perKmSavings !== 0) {
+        const runningPerKm = data.annualKm > 0 ? data.annualRunningDiff / data.annualKm : 0;
+        const totalPerKmSavings = perKmSavings - runningPerKm;
+        if (totalPerKmSavings > 0) {
+          breakEvenKm = data.purchaseDiff / totalPerKmSavings;
+        }
+      }
+
+      let breakEvenYears = null;
+      if (annualVariableSavings > 0 && data.purchaseDiff >= 0) {
+        breakEvenYears = data.purchaseDiff / annualVariableSavings;
+      }
+
+      return {
+        ice100, ev100, diff100,
+        iceYear, evYear, diffYearEnergy, totalYearDiff,
+        iceDistance, evDistance, diffDistance,
+        maxPowerPrice, fuelThreshold,
+        breakEvenKm, breakEvenYears,
+      };
+    }
+
+    function metric(label, value) {
+      return `<div class="metric"><div class="label">${label}</div><div class="value">${value}</div></div>`;
+    }
+
+    function renderWarnings(data) {
+      const warnings = [];
+      if (data.iceConsumption === 0 || data.evConsumption === 0) warnings.push('Ein Verbrauch von 0 ist in der Realität unplausibel.');
+      if (data.fuelPrice === 0 || data.powerPrice === 0) warnings.push('Ein Energiepreis von 0 führt zu unrealistischen Ergebnissen.');
+      if (data.annualKm === 0) warnings.push('Bei 0 km/Jahr kann keine jährliche Hochrechnung erfolgen.');
+      el.warnings.innerHTML = warnings.length ? `<div class="warn-box">${warnings.join('<br>')}</div>` : '';
+    }
+
+    function renderSummary(result) {
+      el.sumIce100.textContent = euro.format(result.ice100);
+      el.sumEv100.textContent = euro.format(result.ev100);
+      el.sumDiff100.textContent = euro.format(result.diff100);
+      el.sumMaxPowerPrice.textContent = result.maxPowerPrice == null ? '–' : `${num2.format(result.maxPowerPrice)} €/kWh`;
+
+      el.statusBadge.className = 'status-badge';
+      if (result.diff100 < 0) {
+        el.statusBadge.classList.add('status-good');
+        el.statusBadge.textContent = '🟢 EV günstiger';
+      } else if (result.diff100 > 0) {
+        el.statusBadge.classList.add('status-bad');
+        el.statusBadge.textContent = '🔴 ICE günstiger';
+      } else {
+        el.statusBadge.classList.add('status-even');
+        el.statusBadge.textContent = '⚖️ Gleichstand';
+      }
+
+      if (result.breakEvenKm != null && result.breakEvenKm >= 0 && Number.isFinite(result.breakEvenKm)) {
+        el.statusText.textContent = `EV ist günstiger ab ca. ${num2.format(result.breakEvenKm)} km Gesamtlaufleistung (unter aktuellen Annahmen).`;
+      } else {
+        el.statusText.textContent = 'Kein sinnvoller Break-even unter den aktuellen Annahmen (oder EV bereits beim Kauf günstiger).';
+      }
+    }
+
+    function renderResultGrid(result) {
+      el.calcResults.innerHTML = [
+        metric('ICE Kosten pro 100 km', euro.format(result.ice100)),
+        metric('EV Kosten pro 100 km', euro.format(result.ev100)),
+        metric('Differenz pro 100 km (EV - ICE)', euro.format(result.diff100)),
+        metric('ICE Kosten auf Strecke', euro.format(result.iceDistance)),
+        metric('EV Kosten auf Strecke', euro.format(result.evDistance)),
+        metric('Differenz auf Strecke (EV - ICE)', euro.format(result.diffDistance)),
+        metric('ICE Energiekosten pro Jahr', euro.format(result.iceYear)),
+        metric('EV Energiekosten pro Jahr', euro.format(result.evYear)),
+        metric('Gesamt-Differenz/Jahr inkl. laufende Kosten (EV - ICE)', euro.format(result.totalYearDiff)),
+        metric('Break-even-Strecke', result.breakEvenKm != null && result.breakEvenKm >= 0 && Number.isFinite(result.breakEvenKm) ? `${num2.format(result.breakEvenKm)} km` : 'Nicht erreichbar / nicht definiert'),
+        metric('Break-even-Jahre', result.breakEvenYears != null && result.breakEvenYears >= 0 && Number.isFinite(result.breakEvenYears) ? `${num2.format(result.breakEvenYears)} Jahre` : 'Nicht erreichbar / nicht definiert'),
+        metric('Max. Strompreis für EV-Vorteil', result.maxPowerPrice == null ? '–' : `${num2.format(result.maxPowerPrice)} €/kWh`),
+        metric('Spritpreis-Schwelle für EV-Vorteil', result.fuelThreshold == null ? '–' : `${num2.format(result.fuelThreshold)} €/Liter`),
+      ].join('');
+    }
+
+    let chartPower = null;
+    let chartFuel = null;
+
+    function buildPoints(start, end, step, fn) {
+      const pts = [];
+      for (let x = start; x <= end + 1e-9; x += step) pts.push({ x: +x.toFixed(3), y: fn(x) });
+      return pts;
+    }
+
+    function createOrUpdateCharts(data, result) {
+      if (!window.Chart) {
+        return;
+      }
+
+      const powerEv = buildPoints(0.1, 0.8, 0.01, (x) => x * data.evConsumption);
+      const powerIce = buildPoints(0.1, 0.8, 0.01, () => result.ice100);
+      const bePower = result.maxPowerPrice;
+      const bePowerPoint = bePower >= 0.1 && bePower <= 0.8 ? [{ x: bePower, y: result.ice100 }] : [];
+
+      const fuelEv = buildPoints(0.9, 3.0, 0.02, () => result.ev100);
+      const fuelIce = buildPoints(0.9, 3.0, 0.02, (x) => x * data.iceConsumption);
+      const beFuel = result.fuelThreshold;
+      const beFuelPoint = beFuel >= 0.9 && beFuel <= 3.0 ? [{ x: beFuel, y: result.ev100 }] : [];
+
+      const powerCfg = {
+        type: 'line',
+        data: {
+          datasets: [
+            { label: 'EV Kosten / 100 km', data: powerEv, borderColor: '#0f766e', pointRadius: 0, tension: .1 },
+            { label: 'ICE Kosten / 100 km', data: powerIce, borderColor: '#1d4ed8', pointRadius: 0, borderDash: [6, 4] },
+            { label: 'Break-even', data: bePowerPoint, borderColor: '#dc2626', backgroundColor: '#dc2626', pointRadius: 5, showLine: false },
+          ],
+        },
+        options: {
+          parsing: false,
+          responsive: true,
+          scales: {
+            x: { type: 'linear', title: { display: true, text: 'Strompreis (€/kWh)' } },
+            y: { title: { display: true, text: 'Kosten pro 100 km (€)' } },
+          },
+        },
+      };
+
+      const fuelCfg = {
+        type: 'line',
+        data: {
+          datasets: [
+            { label: 'EV Kosten / 100 km', data: fuelEv, borderColor: '#0f766e', pointRadius: 0, borderDash: [6, 4] },
+            { label: 'ICE Kosten / 100 km', data: fuelIce, borderColor: '#1d4ed8', pointRadius: 0 },
+            { label: 'Break-even', data: beFuelPoint, borderColor: '#dc2626', backgroundColor: '#dc2626', pointRadius: 5, showLine: false },
+          ],
+        },
+        options: {
+          parsing: false,
+          responsive: true,
+          scales: {
+            x: { type: 'linear', title: { display: true, text: 'Spritpreis (€/Liter)' } },
+            y: { title: { display: true, text: 'Kosten pro 100 km (€)' } },
+          },
+        },
+      };
+
+      if (!chartPower) chartPower = new Chart(document.getElementById('chartPower'), powerCfg);
+      else { chartPower.data = powerCfg.data; chartPower.options = powerCfg.options; chartPower.update(); }
+
+      if (!chartFuel) chartFuel = new Chart(document.getElementById('chartFuel'), fuelCfg);
+      else { chartFuel.data = fuelCfg.data; chartFuel.options = fuelCfg.options; chartFuel.update(); }
+    }
+
+    function update() {
+      const data = getInputs();
+      renderWarnings(data);
+      const result = calc(data);
+      renderSummary(result);
+      renderResultGrid(result);
+      createOrUpdateCharts(data, result);
+    }
+
+    function setDefaults(values) {
+      Object.entries(values).forEach(([k, v]) => {
+        if (el[k]) el[k].value = v;
+      });
+      el.fuelPriceRange.value = values.fuelPrice;
+      el.iceConsumptionRange.value = values.iceConsumption;
+      el.powerPriceRange.value = values.powerPrice;
+      el.evConsumptionRange.value = values.evConsumption;
+
+      el.fuelPriceDisplay.textContent = Number(values.fuelPrice).toFixed(2);
+      el.iceConsumptionDisplay.textContent = Number(values.iceConsumption).toFixed(2);
+      el.powerPriceDisplay.textContent = Number(values.powerPrice).toFixed(2);
+      el.evConsumptionDisplay.textContent = Number(values.evConsumption).toFixed(2);
+      update();
+    }
+
+    syncValue(el.fuelPrice, el.fuelPriceRange, el.fuelPriceDisplay);
+    syncValue(el.iceConsumption, el.iceConsumptionRange, el.iceConsumptionDisplay);
+    syncValue(el.powerPrice, el.powerPriceRange, el.powerPriceDisplay);
+    syncValue(el.evConsumption, el.evConsumptionRange, el.evConsumptionDisplay);
+
+    [el.distanceKm, el.annualKm, el.purchaseDiff, el.annualRunningDiff].forEach((node) => {
+      node.addEventListener('input', update);
+    });
+
+    el.loadExample.addEventListener('click', () => {
+      setDefaults({
+        fuelPrice: 2.05,
+        iceConsumption: 7.2,
+        powerPrice: 0.29,
+        evConsumption: 16.4,
+        distanceKm: 800,
+        annualKm: 18000,
+        purchaseDiff: 8000,
+        annualRunningDiff: -250,
+      });
+    });
+
+    el.resetAll.addEventListener('click', () => setDefaults(DEFAULTS));
+
+    setDefaults(DEFAULTS);
+  </script>
+</body>
+</html>
